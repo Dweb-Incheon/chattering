@@ -151,5 +151,7 @@ const ChatApp = () => {
   );
 };
 
-const root = ReactDOM.createRoot(document.getElementById('app'));
-root.render(<ChatApp />);
+export default ChatApp;
+
+// const root = ReactDOM.createRoot(document.getElementById('app'));
+// root.render(<ChatApp />);
