@@ -1,55 +1,91 @@
 const userNames = (function () {
-  let names = {};
+  let users = {};
 
-  const claim = function (name) {
-    if (!name || names[name]) {
+  const registerCheck = function (user_info) {
+    if (!user_info.id || users[user_info.id]) {
       return false;
     } else {
-      names[name] = true;
+      users[user_info.id] = user_info.pw;
+      return true;
+    }
+  };
+
+  const loginCheck = function (user_info) {
+    if (!user_info.pw || (user_info.pw !== users[user_info.id])) {
+      return false;
+    } else {
       return true;
     }
   };
 
   // find the lowest unused "guest" name and claim it
-  const getGuestName = function () {
-    let name;
-    let nextUserId = 1;
+  // const getGuestName = function () {
+  //   let name;
+  //   let nextUserId = 1;
 
-    do {
-      name = 'Guest ' + nextUserId;
-      nextUserId += 1;
-    } while (!claim(name));
+  //   do {
+  //     name = 'Guest ' + nextUserId;
+  //     nextUserId += 1;
+  //   } while (!claim(id));
 
-    return name;
-  };
+  //   return id;
+  // };
 
   // serialize claimed names as an array
   const get = function () {
-    return Object.keys(names);
+    return Object.keys(users);
   };
 
-  const free = function (name) {
-    if (names[name]) {
-      delete names[name];
+  const free = function (id) {
+    if (users[id]) {
+      delete users[id];
     }
   };
 
   return {
-    claim: claim,
+    loginCheck: loginCheck,
+    registerCheck: registerCheck,
     free: free,
     get: get,
-    getGuestName: getGuestName
   };
 })();
 
 // export function for listening to the socket
 module.exports = function (socket) {
-  let name = userNames.getGuestName();  // 변경된 부분: const -> let
-
+  // let name = userNames.getGuestName();  // 변경된 부분: const -> let
+  let name="";
   // send the new user their name and a list of users
-  socket.emit('init', {
-    name: name,
-    users: userNames.get()
+  // socket.emit('init', {
+  //   name: name,
+  //   users: userNames.get()
+  // });
+
+  socket.on('user:register', (user_info, fn) => {
+    let message = "";
+    if (!userNames.registerCheck(user_info)) {
+      message = "해당 id는 존재하는 id입니다. 다른 id로 가입해주세요!!";
+      fn(message);
+    } else {
+      message = "회원 가입 성공!!";
+      fn(message);
+    }
+    // socket.emit('user:register', {
+    //   message: message
+    // });
+  });
+
+  socket.on('user:login', (user_info, fn) => {
+    let message = "";
+    if (!userNames.loginCheck(user_info)) {
+      message = "id나 비밀번호가 틀립니다.";
+      fn(message);
+    } else {
+      message = "로그인 성공!!";
+      fn(message);
+    }
+    // socket.emit('server:login', {
+    //   message: message
+    // });
   });
 
   // notify other clients that a new user has joined

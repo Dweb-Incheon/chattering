@@ -4,6 +4,7 @@ import io from 'socket.io-client';
 
 const socket = io.connect();
 
+//자식 컴포넌트
 const UsersList = ({ users }) => {
   return (
     <div className='users'>
@@ -88,6 +89,7 @@ const ChangeNameForm = ({ onChangeName }) => {
   );
 };
 
+//부모 컴포넌트
 const ChatApp = () => {
   const [users, setUsers] = useState([]);
   const [messages, setMessages] = useState([]);
