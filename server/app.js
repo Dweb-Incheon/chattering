@@ -45,14 +45,10 @@ const userNames = (function () {
   };
 
   const getRoomMessages = function (room_name) {
-    console.log(roomMessages);
     return roomMessages[room_name];
   };
 
   const pushMessage = function (room_name, message) {
-    console.log("exec pushMessge");
-    console.log("roomMessages: ",roomMessages);
-    console.log(message);
     if (roomMessages[room_name]) {
       roomMessages[room_name].push(message);
     }
@@ -70,21 +66,11 @@ const userNames = (function () {
     delete joinRoom[user];
   }
 
-  const getUsers = function () {
-    return Object.keys(users);
-  };
 
-  const freeUser = function (id) {
-    if (users[id]) {
-      delete users[id];
-    }
-  };
 
   return {
     loginCheck: loginCheck,
     registerCheck: registerCheck,
-    freeUser: freeUser,
-    getUsers: getUsers,
     searchRoom: searchRoom,
     makeRoom: makeRoom,
     getRoomMessages: getRoomMessages,
@@ -122,14 +108,12 @@ io.on('connection', (socket) => {
 
   socket.on('search:room', ({ room_name, user }, fn) => {
     let join_room = userNames.checkRoom(user)
-    console.log(join_room);
     if (join_room){
       userNames.deleteRoom(user);
       socket.leave(join_room);
     }
     let result = userNames.searchRoom(room_name);
     const room_messages = userNames.getRoomMessages(room_name);
-    console.log(room_messages);
     if (result){
       socket.join(room_name);
       userNames.addRoom(user, room_name);
@@ -158,9 +142,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', function () {
     socket.broadcast.emit('user:left', {
-      name: name
     });
-    userNames.freeUser(name);
   });
 });
 
