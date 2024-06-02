@@ -1,30 +1,79 @@
-body{
-	width: 600px;
-	margin: 0 auto;
-	border: 5px solid #02499B;
-	margin-top: 5%;
-}
-.users{
-	float : right;
-	margin-right: 30%;
-}
-.messages {
-	width: 500px;
-	height: 400px;
-	margin: auto;
-	border : 1px solid black;
-	padding: 1em;
-}
-.message_form,
-.change_name_form{
-	padding: 1em;
-}
-.center{
-	width: 600px;
-	height: 700px;
-}
-.textinput{
-	margin-left: 3%;
-	width: 520px;
-	height: 40px;
-}
+/* ChatApp.css */
+.chat-app {
+	display: flex;
+	height: 100vh;
+	font-family: Arial, sans-serif;
+  }
+  
+  .sidebar {
+	width: 25%;
+	background-color: #f4f4f4;
+	border-right: 1px solid #ddd;
+	padding: 20px;
+  }
+  
+  .chat-container {
+	width: 75%;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	padding: 20px;
+  }
+  
+  .messages {
+	flex-grow: 1;
+	overflow-y: auto;
+	padding: 10px;
+	border: 1px solid #ddd;
+	background-color: #fff;
+  }
+  
+  .message {
+	margin-bottom: 10px;
+  }
+  
+  .message strong {
+	color: #007bff;
+  }
+  
+  .message_form {
+	display: flex;
+	border-top: 1px solid #ddd;
+	padding: 10px;
+	background-color: #f9f9f9;
+  }
+  
+  .message_form input {
+	flex-grow: 1;
+	padding: 10px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	margin-right: 10px;
+  }
+  
+  .message_form button {
+	padding: 10px 20px;
+	border: none;
+	background-color: #007bff;
+	color: #fff;
+	border-radius: 4px;
+	cursor: pointer;
+  }
+  
+  .message_form button:hover {
+	background-color: #0056b3;
+  }
+  
+  .empty-chat {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 100%;
+	text-align: center;
+	color: #777;
+  }
+  
+  .empty-chat p {
+	font-size: 1.2em;
+  }
+  

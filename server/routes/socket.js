@@ -1,5 +1,9 @@
 const userNames = (function () {
   let users = {};
+  // 형식 [chatroom 이름]
+  let chatroom = [];
+  // 형식 {chatroom 이름:[{user: 유저 id, message: 유저가 보낸 message},... }
+  let roommessages = {};
 
   const registerCheck = function (user_info) {
     if (!user_info.id || users[user_info.id]) {
@@ -17,6 +21,27 @@ const userNames = (function () {
       return true;
     }
   };
+
+  const searchRoom = function (room_name) {
+    return chatroom.includes(room_name);
+  };
+
+  const makeRoom = function (room_name) {
+    chatroom.push(room_name);
+    roommessages[room_name] = [];
+  };
+
+  const roomMessages = function (room_name) {
+    // console.log(roommessages[room_name]);
+    return roommessages[room_name];
+  };
+
+  const pushMessage = function (room_name, message) {
+    if (!roommessages[room_name]){
+      roommessages[room_name].push(message);
+    }
+  }
+
 
   // find the lowest unused "guest" name and claim it
   // const getGuestName = function () {
@@ -47,12 +72,15 @@ const userNames = (function () {
     registerCheck: registerCheck,
     free: free,
     get: get,
+    searchRoom: searchRoom,
+    makeRoom: makeRoom,
+    roomMessages: roomMessages,
+    pushMessage: pushMessage,
   };
 })();
 
 // export function for listening to the socket
 module.exports = function (socket) {
-  // let name = userNames.getGuestName();  // 변경된 부분: const -> let
   let name="";
   // send the new user their name and a list of users
   // socket.emit('init', {
@@ -69,9 +97,6 @@ module.exports = function (socket) {
       message = "회원 가입 성공!!";
       fn(message);
     }
-    // socket.emit('user:register', {
-    //   message: message
-    // });
   });
 
   socket.on('user:login', (user_info, fn) => {
@@ -83,42 +108,58 @@ module.exports = function (socket) {
       message = "로그인 성공!!";
       fn(message);
     }
-    // socket.emit('server:login', {
-    //   message: message
-    // });
   });
 
-  // notify other clients that a new user has joined
-  socket.broadcast.emit('user:join', {
-    name: name
+  socket.on('search:room', ({ room_name }, fn) => {
+    let result = userNames.searchRoom(room_name);
+    const room_messages = userNames.roomMessages(room_name);
+    if (result){
+        fn(room_messages, result);
+    } else {
+      const empty_message = [];
+      fn(empty_message, result);
+    }
   });
+
+  socket.on('make:room', ({ room_name }, fn) => {
+      userNames.makeRoom(room_name);
+      const room_messages = userNames.roomMessages(room_name);
+      fn(room_messages);
+  });
+
+  // // notify other clients that a new user has joined
+  // socket.broadcast.emit('user:join', {
+  //   name: name
+  // });
 
   // broadcast a user's message to other users
-  socket.on('send:message', function (data) {
+  socket.on('send:message', (message, room_name)=> {
+    console.log(room_name);
+    userNames.pushMessage(room_name, message);
     socket.broadcast.emit('send:message', {
-      user: name,
-      text: data.text
+      user: message.user,
+      message: message.message
     });
   });
 
-  // validate a user's name change, and broadcast it on success
-  socket.on('change:name', function (data, fn) {
-    if (userNames.claim(data.name)) {
-      const oldName = name;
-      userNames.free(oldName);
+  // // validate a user's name change, and broadcast it on success
+  // socket.on('change:name', function (data, fn) {
+  //   if (userNames.claim(data.name)) {
+  //     const oldName = name;
+  //     userNames.free(oldName);
 
-      name = data.name;  // 변경된 부분: name을 let으로 선언하여 재할당 가능하게 함
+  //     name = data.name;  // 변경된 부분: name을 let으로 선언하여 재할당 가능하게 함
 
-      socket.broadcast.emit('change:name', {
-        oldName: oldName,
-        newName: name
-      });
+  //     socket.broadcast.emit('change:name', {
+  //       oldName: oldName,
+  //       newName: name
+  //     });
 
-      fn(true);
-    } else {
-      fn(false);
-    }
-  });
+  //     fn(true);
+  //   } else {
+  //     fn(false);
+  //   }
+  // });
 
   // clean up when a user leaves, and broadcast it to other users
   socket.on('disconnect', function () {

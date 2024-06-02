@@ -1,159 +1,192 @@
 import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom/client';
+import styled from 'styled-components';
 import io from 'socket.io-client';
+import ChatRoomSearch from './ChatRoomSearch';
+import ChatRoomList from './ChatRoomList';
+import MessagesList from "./MessagesList";
 
-const socket = io.connect();
+let socket = io("http://localhost:4000", { transports: ['websocket', 'polling'] });
 
-//자식 컴포넌트
-const UsersList = ({ users }) => {
-  return (
-    <div className='users'>
-      <h3> 참여자들 </h3>
-      <ul>
-        {users.map((user, i) => (
-          <li key={i}>{user}</li>
-        ))}
-      </ul>
-    </div>
-  );
-};
+const AppContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f0f2f5;
+`;
 
-const Message = ({ user, text }) => {
-  return (
-    <div className="message">
-      <strong>{user} :</strong> 
-      <span>{text}</span>    
-    </div>
-  );
-};
+const ChatAppContainer = styled.div`
+  width: 60%;
+  height: 80vh;
+  background: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  display: flex;
+  overflow: hidden;
+`;
 
-const MessageList = ({ messages }) => {
-  return (
-    <div className='messages'>
-      <h2> 채팅방 </h2>
-      {messages.map((message, i) => (
-        <Message key={i} user={message.user} text={message.text} />
-      ))}
-    </div>
-  );
-};
+const Sidebar = styled.div`
+  width: 30%;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  display: flex;
+  flex-direction: column;
+`;
 
-const MessageForm = ({ user, onMessageSubmit }) => {
+const ChatContainer = styled.div`
+  width: 70%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+`;
+
+const EmptyChat = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #868e96;
+`;
+
+const MessageFormContainer = styled.form`
+  display: flex;
+  align-items: center;
+  margin-top: auto; /* 메시지 입력창을 아래쪽에 고정시킵니다. */
+`;
+
+const MessageInput = styled.input`
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px 0 0 8px;
+  margin: 0;
+`;
+
+const SendMessageButton = styled.button`
+  padding: 10px 20px;
+  border: 1px solid #ccc;
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s;
+
+  &:hover {
+    background-color: #0056b3;
+  }
+`;
+
+const MessageForm = ({ userId, onMessageSubmit }) => {
   const [text, setText] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const message = {
-      user,
-      text
-    };
-    onMessageSubmit(message);
-    setText('');
+    if (text !== '') {
+      const message = {
+        user: userId,
+        message: text,
+      };
+      onMessageSubmit(message);
+      setText('');
+    }
   };
 
   return (
-    <div className='message_form'>
-      <form onSubmit={handleSubmit}>
-        <input
-          placeholder='메시지 입력'
-          className='textinput'
-          onChange={(e) => setText(e.target.value)}
-          value={text}
-        />
-        <h3></h3>
-      </form>
-    </div>
+    <MessageFormContainer onSubmit={handleSubmit}>
+      <MessageInput
+        placeholder='메시지 입력'
+        className='textinput'
+        onChange={(e) => setText(e.target.value)}
+        value={text}
+      />
+      <SendMessageButton type="submit">전송</SendMessageButton>
+    </MessageFormContainer>
   );
 };
 
-const ChangeNameForm = ({ onChangeName }) => {
-  const [newName, setNewName] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onChangeName(newName);
-    setNewName('');
-  };
-
-  return (
-    <div className='change_name_form'>
-      <h3> 아이디 변경 </h3>
-      <form onSubmit={handleSubmit}>
-        <input
-          placeholder='변경할 아이디 입력'
-          onChange={(e) => setNewName(e.target.value)}
-          value={newName}
-        />
-      </form>  
-    </div>
-  );
-};
-
-//부모 컴포넌트
-const ChatApp = () => {
-  const [users, setUsers] = useState([]);
-  const [messages, setMessages] = useState([]);
-  const [user, setUser] = useState('');
+const ChatApp = ({ user }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [existRoom, setExistRoom] = useState(false);
+  const [onSearch, setOnSearch] = useState(false);
+  const [roomMessages, setRoomMessages] = useState([]);
+  const [enterRoom, setEnterRoom] = useState(false);
 
   useEffect(() => {
-    socket.on('init', (data) => {
-      const { users, name } = data;
-      setUsers(users);
-      setUser(name);
-    });
-
     socket.on('send:message', (message) => {
-      setMessages((prevMessages) => [...prevMessages, message]);
-    });
-
-    socket.on('user:join', ({ name }) => {
-      setUsers((prevUsers) => [...prevUsers, name]);
-    });
-
-    socket.on('user:left', ({ name }) => {
-      setUsers((prevUsers) => prevUsers.filter((user) => user !== name));
-    });
-
-    socket.on('change:name', ({ oldName, newName }) => {
-      setUsers((prevUsers) => prevUsers.map((user) => (user === oldName ? newName : user)));
+      setRoomMessages((prevMessages) => [...prevMessages, message]);
     });
 
     return () => {
-      socket.off('init');
       socket.off('send:message');
-      socket.off('user:join');
-      socket.off('user:left');
-      socket.off('change:name');
     };
   }, []);
 
   const handleMessageSubmit = (message) => {
-    setMessages((prevMessages) => [...prevMessages, message]);
-    socket.emit('send:message', message);
+    socket.emit('send:message', { message, room_name: searchQuery });
   };
 
-  const handleChangeName = (newName) => {
-    const oldName = user;
-    socket.emit('change:name', { name: newName }, (result) => {
-      if (!result) {
-        return alert('There was an error changing your name');
-      }
-      setUsers((prevUsers) => prevUsers.map((user) => (user === oldName ? newName : user)));
-      setUser(newName);
+  useEffect(() => {
+    if (searchQuery) {
+      socket.emit('search:room', { room_name: searchQuery, user:user }, (room_messages, exist_room) => {
+        setOnSearch(true);
+        setEnterRoom(false);
+        setExistRoom(exist_room);
+        setRoomMessages(room_messages);
+      });
+    }
+  }, [searchQuery]);
+
+  const handleCreateRoom = () => {
+    socket.emit('make:room', { room_name: searchQuery, user:user }, (room_messages) => {
+      setEnterRoom(true);
+      setOnSearch(false);
+      setExistRoom(true);
+      setRoomMessages(room_messages);
     });
   };
 
+  const onClickXButton = () => {
+    setOnSearch(false);
+    setSearchQuery('');
+  };
+
+  const handleEnterRoom = () => {
+    setOnSearch(false);
+    setEnterRoom(true);
+  };
+
   return (
-    <div className='center'>
-      <UsersList users={users} />
-      <ChangeNameForm onChangeName={handleChangeName} />
-      <MessageList messages={messages} />
-      <MessageForm onMessageSubmit={handleMessageSubmit} user={user} />
-    </div>
+    <AppContainer>
+      <ChatAppContainer>
+        <Sidebar>
+          <ChatRoomSearch setSearchQuery={setSearchQuery} />
+          {onSearch && (
+            <ChatRoomList
+              room_name={searchQuery}
+              exist_room={existRoom}
+              onCreateRoom={handleCreateRoom}
+              onClickXButton={onClickXButton}
+              onEnterRoom={handleEnterRoom}
+            />
+          )}
+        </Sidebar>
+        <ChatContainer>
+          {enterRoom ? (
+            <>
+              <MessagesList roomName={searchQuery} roomMessages={roomMessages} userId={user}/>
+              <MessageForm onMessageSubmit={handleMessageSubmit} userId={user} />
+            </>
+          ) : (
+            <EmptyChat>
+              <p>채팅방을 검색하거나 생성해주세요.</p>
+            </EmptyChat>
+          )}
+        </ChatContainer>
+      </ChatAppContainer>
+    </AppContainer>
   );
 };
 
 export default ChatApp;
-
-// const root = ReactDOM.createRoot(document.getElementById('app'));
-// root.render(<ChatApp />);
